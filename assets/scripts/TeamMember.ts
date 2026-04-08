@@ -8,6 +8,13 @@ export enum SkillType {
     Design,
 }
 
+export enum Mood {
+    Happy,
+    Neutral,
+    Sad,
+    Angry,
+}
+
 // ── Dialogues ───────────────────────────────────────
 
 const DIALOGUES = {
@@ -68,7 +75,7 @@ function pickRandom(arr: string[]): string {
 }
 
 function dialog(key: keyof typeof DIALOGUES, name: string, extra: Record<string, string | number> = {}): string {
-    let result = pickRandom(DIALOGUES[key]).replace(/{name}/g, name); // replace name place holder with actual member name
+    let result = pickRandom(DIALOGUES[key]).replace(/{name}/g, name);
     for (const k in extra) {
         result = result.replace(`{${k}}`, String(extra[k]));
     }
@@ -100,20 +107,12 @@ export class TeamMember extends Component {
     morale: number = 70;
 
     @property
-    hatesBeingIgnored: boolean = false;
-
-    @property
-    needsVariety: boolean = false;
-
-    @property
-    introvert: boolean = false;
-
-    @property
     slowRecovery: boolean = false;
 
-    // Runtime state (not in inspector)
+    // Runtime state
     private _memberDisplayName: string = '';
     color: string = '#FFFFFF';
+    mood: Mood = Mood.Neutral;
     maxEnergy: number = 100;
     maxMorale: number = 100;
     burnedOut: boolean = false;
@@ -128,6 +127,7 @@ export class TeamMember extends Component {
         colorIndex++;
         this.maxEnergy = this.energy;
         this.maxMorale = 100;
+        this.updateMood();
     }
 
     public get displayName(): string {
@@ -136,6 +136,19 @@ export class TeamMember extends Component {
 
     public canWork(): boolean {
         return !this.burnedOut && this.energy > 0;
+    }
+
+    /** Update mood based on current morale */
+    private updateMood(): void {
+        if (this.burnedOut || this.disengaged) {
+            this.mood = Mood.Angry;
+        } else if (this.morale >= 70) {
+            this.mood = Mood.Happy;
+        } else if (this.morale >= 40) {
+            this.mood = Mood.Neutral;
+        } else {
+            this.mood = Mood.Sad;
+        }
     }
 
     public assignTask(taskSkill: SkillType, taskDifficulty: number): { quality: number; message: string } {
@@ -160,17 +173,13 @@ export class TeamMember extends Component {
             message = dialog('neutralMatch', this._memberDisplayName);
         }
 
-        // Trait modifiers
-        if (this.introvert && taskSkill === SkillType.Communication) {
-            energyCost *= 1.4;
-            moraleCost += 10;
+        // Sad members perform worse
+        if (this.mood === Mood.Sad) {
+            energyCost *= 1.3;
+            moraleCost += 5;
         }
-        if (this.needsVariety && this.assignedTaskCount > 2) {
-            moraleCost += 10;
-        }
-        if (this.hatesBeingIgnored && taskSkill === SkillType.Communication) {
-            moraleCost = -10;
-        }
+
+        // Slow recovery trait
         if (this.slowRecovery && this.energy < 30) {
             energyCost *= 1.3;
         }
@@ -197,6 +206,7 @@ export class TeamMember extends Component {
             message = dialog('disengaged', this._memberDisplayName);
         }
 
+        this.updateMood();
         return { quality: Math.max(0, Math.min(100, quality)), message };
     }
 
@@ -205,10 +215,8 @@ export class TeamMember extends Component {
 
         if (this.assignedTaskCount === 0) {
             this.daysIgnored++;
-            let idleLoss = 10;
-            if (this.hatesBeingIgnored) idleLoss = 25;
             messages.push(dialog('idle', this._memberDisplayName));
-            this.morale = Math.max(0, this.morale - idleLoss);
+            this.morale = Math.max(0, this.morale - 10);
 
             if (this.daysIgnored >= 2) {
                 this.disengaged = true;
@@ -235,13 +243,16 @@ export class TeamMember extends Component {
         }
 
         this.assignedTaskCount = 0;
+        this.updateMood();
         return messages;
     }
 
     public oneOnOne(): string {
         this.morale = Math.min(this.maxMorale, this.morale + 25);
+        this.updateMood();
         if (this.disengaged && this.morale > 30) {
             this.disengaged = false;
+            this.updateMood();
             return dialog('oneOnOneRecovery', this._memberDisplayName);
         }
         return dialog('oneOnOneNormal', this._memberDisplayName);
@@ -256,5 +267,6 @@ export class TeamMember extends Component {
         this.assignedTaskCount = 0;
         this.totalTasksCompleted = 0;
         this.daysIgnored = 0;
+        this.updateMood();
     }
 }
