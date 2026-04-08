@@ -68,7 +68,7 @@ function pickRandom(arr: string[]): string {
 }
 
 function dialog(key: keyof typeof DIALOGUES, name: string, extra: Record<string, string | number> = {}): string {
-    let result = pickRandom(DIALOGUES[key]).replace(/{name}/g, name);
+    let result = pickRandom(DIALOGUES[key]).replace(/{name}/g, name); // replace name place holder with actual member name
     for (const k in extra) {
         result = result.replace(`{${k}}`, String(extra[k]));
     }
