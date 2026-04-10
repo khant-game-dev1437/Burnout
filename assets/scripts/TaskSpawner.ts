@@ -1,7 +1,10 @@
-import { _decorator, Component, Prefab, instantiate, Node, Color } from 'cc';
+import { _decorator, Component, Prefab, instantiate, Node, Color, Vec3, Vec2, UITransform } from 'cc';
 import { TaskInfo, TaskPriority, generateDailyTasks, generateBossTask, resetTaskIds } from './TaskData';
-import { SkillType } from './TeamMember';
+import { SkillType, TeamMember } from './TeamMember';
 import { TaskCard } from './TaskCard';
+import { TeamSpawner } from './TeamSpawner';
+import { bounceIn } from './GameAnimations';
+import { gameEvents, GameEvent } from './GameEvents';
 
 const { ccclass, property } = _decorator;
 
@@ -28,34 +31,34 @@ export class TaskSpawner extends Component {
     @property({ type: Prefab })
     taskPrefab: Prefab = null!;
 
+    @property({ type: TeamSpawner })
+    teamSpawner: TeamSpawner = null!;
+
     private taskCards: Map<number, TaskCard> = new Map();
     private currentTasks: TaskInfo[] = [];
     private selectedTaskId: number = -1;
 
-    // Callback — GameManager sets this
+    // Callbacks — GameManager sets these
     public onTaskClicked: ((task: TaskInfo) => void) | null = null;
+    public onTaskDroppedOnMember: ((task: TaskInfo, member: TeamMember) => void) | null = null;
 
-    start(): void {
-        this.spawnDailyTasks(5);
-    }
+    /** Spawn new wave tasks — appends to existing (carry-over) */
+    public spawnWaveTasks(count: number = 10): TaskInfo[] {
+        const newTasks = generateDailyTasks(count);
+        this.currentTasks.push(...newTasks);
 
-    /** Spawn tasks for a new day */
-    public spawnDailyTasks(count: number = 5): TaskInfo[] {
-        this.clearTasks();
-        this.currentTasks = generateDailyTasks(count);
-
-        for (let i = 0; i < this.currentTasks.length; i++) {
-            this.spawnCard(this.currentTasks[i]);
+        for (const task of newTasks) {
+            this.spawnCard(task);
         }
 
-        return this.currentTasks;
+        return newTasks;
     }
 
-    /** Add a boss interrupt task */
-    public addBossTask(): TaskInfo {
-        const task = generateBossTask();
-        this.currentTasks.push(task);
-        this.spawnCard(task);
+    /** Add a boss interrupt task (pass existing or generate new) — always at top of list */
+    public addBossTask(existingTask?: TaskInfo): TaskInfo {
+        const task = existingTask || generateBossTask();
+        this.currentTasks.unshift(task);
+        this.spawnCard(task, true);
         return task;
     }
 
@@ -78,8 +81,10 @@ export class TaskSpawner extends Component {
         const task = this.currentTasks.find(t => t.id === taskId);
         if (task) task.assignedTo = memberName;
 
-        card.setTitle(`${task?.title} → ${memberName}`);
-        card.dim();
+        // Remove card from UI so list stays clean
+        card.node.removeFromParent();
+        card.node.destroy();
+        this.taskCards.delete(taskId);
 
         if (this.selectedTaskId === taskId) {
             this.selectedTaskId = -1;
@@ -102,6 +107,11 @@ export class TaskSpawner extends Component {
         return this.currentTasks;
     }
 
+    /** Get a TaskCard by task ID */
+    public getTaskCard(taskId: number): TaskCard | null {
+        return this.taskCards.get(taskId) || null;
+    }
+
     /** Clear all task cards */
     public clearTasks(): void {
         for (const [, card] of this.taskCards) {
@@ -121,9 +131,13 @@ export class TaskSpawner extends Component {
 
     // ── Private ─────────────────────────────────────
 
-    private spawnCard(task: TaskInfo): void {
+    private spawnCard(task: TaskInfo, toTop: boolean = false): void {
         const node = instantiate(this.taskPrefab);
-        this.node.addChild(node);
+        if (toTop) {
+            this.node.insertChild(node, 0);
+        } else {
+            this.node.addChild(node);
+        }
 
         const card = node.getComponent(TaskCard);
         if (!card) return;
@@ -146,13 +160,51 @@ export class TaskSpawner extends Component {
             card.background.color = new Color(r, g, b, 255);
         }
 
-        // Click handler
-        node.on(Node.EventType.TOUCH_END, () => {
-            if (task.assignedTo) return;
-            this.selectTask(task.id);
-        });
+        // Drag & drop handler — returns true if assigned
+        card.onDropped = (cardNode: Node, worldPos: Vec3): boolean => {
+            return this.handleDrop(task, cardNode, worldPos);
+        };
 
         this.taskCards.set(task.id, card);
+
+        // Bounce in animation with stagger
+        bounceIn(node, this.taskCards.size * 0.1);
+    }
+
+    /** Check if card was dropped on a team member. Returns true if assigned. */
+    private handleDrop(task: TaskInfo, cardNode: Node, worldPos: Vec3): boolean {
+        if (!this.teamSpawner) {
+            console.log('[TaskSpawner] No teamSpawner reference!');
+            return false;
+        }
+
+        const members = this.teamSpawner.getMembers();
+        const memberNodes = this.teamSpawner.node.children;
+
+        console.log(`[TaskSpawner] Drop at world pos: ${worldPos.x}, ${worldPos.y}. Checking ${memberNodes.length} members.`);
+
+        for (let i = 0; i < memberNodes.length; i++) {
+            const memberNode = memberNodes[i];
+            const transform = memberNode.getComponent(UITransform);
+            if (!transform) continue;
+
+            // Check using world bounding box — works regardless of parent transforms
+            const bbox = transform.getBoundingBoxToWorld();
+
+            console.log(`[TaskSpawner] Member ${i}: bbox(${bbox.x}, ${bbox.y}, ${bbox.width}, ${bbox.height})`);
+
+            if (bbox.contains(new Vec2(worldPos.x, worldPos.y))) {
+                const member = members[i];
+                console.log(`[TaskSpawner] Hit member: ${member.displayName}`);
+                if (member && this.onTaskDroppedOnMember) {
+                    this.onTaskDroppedOnMember(task, member);
+                    return true;
+                }
+            }
+        }
+
+        console.log('[TaskSpawner] No member hit.');
+        return false;
     }
 
     private selectTask(taskId: number): void {

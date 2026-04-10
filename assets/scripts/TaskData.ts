@@ -56,23 +56,11 @@ function randomPriority(): TaskPriority {
     return TaskPriority.Low;
 }
 
-export function generateDailyTasks(count: number = 5): TaskInfo[] {
+export function generateDailyTasks(count: number = 10): TaskInfo[] {
     const tasks: TaskInfo[] = [];
-    const used = new Set<string>();
 
     for (let i = 0; i < count; i++) {
-        // Step 1: pick a random task from the pool
-        let t = pickRandom(TASK_POOL);
-
-        // Step 2: if we already picked this task today, keep picking until we find a new one
-        while (used.has(t.title)) {
-            t = pickRandom(TASK_POOL);
-        }
-
-        // Step 3: mark this task as used so we don't pick it again
-        used.add(t.title);
-
-        // Step 4: create the task
+        const t = pickRandom(TASK_POOL);
         const priority = randomPriority();
         tasks.push({
             id: nextId++,

@@ -1,7 +1,17 @@
 import { _decorator, Component, Prefab, instantiate, Node, Label, Sprite, Color, UITransform } from 'cc';
 import { TeamMember, SkillType, Mood } from './TeamMember';
+import { gameEvents, GameEvent } from './GameEvents';
+import { bounceIn, animateMood, animateBar } from './GameAnimations';
 
 const { ccclass, property } = _decorator;
+
+const SKILL_NAMES = ['Technical', 'Creative', 'Communication', 'Design'];
+const SKILL_COLORS: Record<number, string> = {
+    [SkillType.Technical]: '#409EFF',
+    [SkillType.Creative]: '#E6A23C',
+    [SkillType.Communication]: '#67C23A',
+    [SkillType.Design]: '#B266FF',
+};
 
 // ── Member Config ───────────────────────────────────
 
@@ -85,6 +95,11 @@ export class TeamSpawner extends Component {
                 bg.color = new Color(config.color);
             }
 
+            // Click handler — emit event for GameManager
+            node.on(Node.EventType.TOUCH_END, () => {
+                gameEvents.emit(GameEvent.MEMBER_CLICKED, member);
+            });
+
             // Set name label
             const lblName = node.getChildByName('lbl_name');
             if (lblName) {
@@ -92,10 +107,20 @@ export class TeamSpawner extends Component {
                 if (label) label.string = config.name;
             }
 
+            // Set strength/weakness via bound property
+            if (member.lblStrengthWeakness) {
+                const str = SKILL_NAMES[config.strength];
+                const wk = SKILL_NAMES[config.weakness];
+                member.lblStrengthWeakness.string = `\u2713${str}  \u2717${wk}`;
+            }
+
             // Update bars and mood
             this.updateMemberUI(node, config);
 
             this.members.push(member);
+
+            // Bounce in with stagger
+            bounceIn(node, i * 0.15);
         }
     }
 
@@ -125,13 +150,6 @@ export class TeamSpawner extends Component {
             }
         }
 
-        // Energy label
-        const lblEnergy = node.getChildByName('lbl_energy');
-        if (lblEnergy) {
-            const label = lblEnergy.getComponent(Label);
-            if (label) label.string = `${Math.round(member.energy)}`;
-        }
-
         // Morale bar fill
         const moraleBar = node.getChildByName('MoralBar');
         if (moraleBar) {
@@ -150,13 +168,6 @@ export class TeamSpawner extends Component {
                     else fillSprite.color = new Color('#E74C3C');
                 }
             }
-        }
-
-        // Morale label
-        const lblMorale = node.getChildByName('lbl_morale');
-        if (lblMorale) {
-            const label = lblMorale.getComponent(Label);
-            if (label) label.string = `${Math.round(member.morale)}`;
         }
 
         // Mood emoji

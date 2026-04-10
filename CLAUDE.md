@@ -19,19 +19,19 @@ A leadership training mini-game where you play as a newly promoted team lead. Ta
 ## Team Members
 | Name | Strength | Weakness | Trait |
 |------|----------|----------|-------|
-| Alex | Technical | Communication | Introverted, burns out fast under social tasks |
-| Sam | Creative | Analytical | Enthusiastic but needs variety |
-| Jordan | Communication | Technical | People-person, hates being ignored |
-| Riley | Analytical | Creative | Steady, reliable, slow to recover from overwork |
+| Min Khant | Technical | Communication | Introverted, burns out fast under social tasks |
+| Leo | Creative | Analytical | Enthusiastic but needs variety |
+| Timber Saw | Communication | Technical | People-person, hates being ignored |
+| Chris | Analytical | Creative | Steady, reliable, slow to recover from overwork |
 
-## Core Loop
-1. Morning — new tasks arrive as emails in inbox, see team status
-2. Assignment phase — click tasks, assign to team members
-3. Boss interrupt — random urgent task may arrive mid-assignment, forces reprioritization
-4. End day — resolve assignments, update stats
-5. Evening report — outcomes, morale/energy changes, team chat reactions
-6. Leadership insight — contextual tips after key moments
-7. Survive 5 days to win
+## Core Loop — Wave System
+1. **10 waves**, each lasting **20 seconds**
+2. Each wave spawns **10 new tasks** (duplicates allowed)
+3. Player drags/clicks tasks onto team members before timer runs out
+4. **Unassigned tasks carry over** to the next wave — pressure builds!
+5. **Eager idle members' morale drains in real-time** (~2/sec) if not assigned work
+6. Between waves — brief recovery (energy +20, morale +5 if low)
+7. Survive all 10 waves to win. 3+ burnouts or 3+ disengagements = game over
 
 ## Creative Features
 
@@ -67,22 +67,34 @@ A leadership training mini-game where you play as a newly promoted team lead. Ta
 ## Project Structure
 ```
 assets/
+├── prefabs/
+│   ├── chatItem.prefab     — Chat bubble prefab
+│   ├── member.prefab       — Team member UI prefab
+│   └── taskItem.prefab     — Task card prefab
 ├── scripts/
-│   ├── GameManager.ts      — Main game controller, state machine
-│   ├── TeamMember.ts       — Team member component & data
-│   ├── TaskData.ts         — Task generation & types
-│   ├── UIManager.ts        — UI creation and updates
-│   ├── TaskCard.ts         — Individual task card component
-│   ├── InsightManager.ts   — Leadership insight messages
-│   ├── ChatSystem.ts       — Slack-style team member reactions
-│   ├── BossEvent.ts        — Boss interrupts & random events
-│   └── ReportCard.ts       — End-game leadership report card
+│   ├── GameManager.ts      — Main game controller, state machine (✅ done)
+│   ├── GameEvents.ts       — Global event bus, 16 event types (✅ done)
+│   ├── GameAnimations.ts   — 14 tween-based animation helpers (✅ done)
+│   ├── TeamMember.ts       — Team member component & data (✅ done)
+│   ├── TeamSpawner.ts      — Spawns 4 members, updates UI bars/mood (✅ done)
+│   ├── TaskData.ts         — Task generation, pool & types (✅ done)
+│   ├── TaskCard.ts         — Drag-and-drop task card component (✅ done)
+│   ├── TaskSpawner.ts      — Spawns/manages task cards, hit detection (✅ done)
+│   ├── ChatSystem.ts       — Slack-style team member reactions (✅ done)
+│   ├── ChatBubble.ts       — Individual chat bubble component (✅ done)
+│   ├── InsightManager.ts   — Leadership insight messages (✅ done)
+│   ├── BossEvent.ts        — Boss interrupts & random events (✅ done)
+│   ├── ReportCard.ts       — End-game leadership report card (✅ done)
+│   └── AudioManager.ts     — Background music & SFX (✅ done)
 ```
 
 ## Conventions
 - All game logic in TypeScript components under `assets/scripts/`
 - UI built programmatically (no manual scene setup beyond root node)
 - Cocos Creator 3.x API (cc module imports)
+- Event-driven architecture via `GameEvents.ts` event bus
+- Prefabs for reusable UI elements (member, taskItem, chatItem)
+- Drag-and-drop task assignment (drag card onto team member)
 
 ## Evaluation Criteria (from brief)
 1. Creativity and clarity — original, well-communicated, fun

@@ -1,4 +1,4 @@
-import { _decorator, Component, Enum } from 'cc';
+import { _decorator, Component, Enum, Label } from 'cc';
 const { ccclass, property } = _decorator;
 
 export enum SkillType {
@@ -109,6 +109,10 @@ export class TeamMember extends Component {
     @property
     slowRecovery: boolean = false;
 
+    // UI binding — assign in prefab inspector
+    @property({ type: Label })
+    lblStrengthWeakness: Label = null!;
+
     // Runtime state
     private _memberDisplayName: string = '';
     color: string = '#FFFFFF';
@@ -162,7 +166,7 @@ export class TeamMember extends Component {
         if (taskSkill === this.strength) {
             quality += 30;
             energyCost *= 0.7;
-            moraleCost = -5;
+            moraleCost = -25;       // strength match boosts morale significantly
             message = dialog('strengthMatch', this._memberDisplayName);
         } else if (taskSkill === this.weakness) {
             quality -= 20;
@@ -200,7 +204,7 @@ export class TeamMember extends Component {
             message = dialog('burnedOut', this._memberDisplayName);
         }
 
-        if (this.morale <= 10) {
+        if (this.morale <= 0) {
             this.disengaged = true;
             quality = Math.floor(quality * 0.5);
             message = dialog('disengaged', this._memberDisplayName);
@@ -256,6 +260,19 @@ export class TeamMember extends Component {
             return dialog('oneOnOneRecovery', this._memberDisplayName);
         }
         return dialog('oneOnOneNormal', this._memberDisplayName);
+    }
+
+    /** Drain morale over time (called each frame during wave timer). Returns true if member became disengaged. */
+    public drainMorale(amount: number): boolean {
+        if (this.burnedOut || this.disengaged) return false;
+        this.morale = Math.max(0, this.morale - amount);
+        this.updateMood();
+        if (this.morale <= 0) {
+            this.disengaged = true;
+            this.updateMood();
+            return true;
+        }
+        return false;
     }
 
     public resetForNewGame(): void {
