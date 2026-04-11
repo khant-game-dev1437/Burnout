@@ -184,10 +184,10 @@ export class TeamSpawner extends Component {
             if (label) {
                 if (member.burnedOut) {
                     label.string = 'BURNED OUT';
-                    label.color = new Color(COLOR_RED);
+                    
                 } else if (member.disengaged) {
                     label.string = 'DISENGAGED';
-                    label.color = new Color(COLOR_YELLOW);
+                    
                 } else {
                     label.string = '';
                 }

@@ -1428,7 +1428,7 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 255,
+      "r": 0,
       "g": 0,
       "b": 0,
       "a": 255
@@ -1498,7 +1498,6 @@
       "__id__": 0
     },
     "fileId": "34m1H86gNAJ5Th7Mq5Llab",
-    "instance": null,
-    "targetOverrides": null
+    "instance": null
   }
 ]

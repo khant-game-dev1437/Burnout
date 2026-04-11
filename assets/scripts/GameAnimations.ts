@@ -143,24 +143,9 @@ export function waveTransition(node: Node, wave: number, callback: () => void): 
         .start();
 }
 
-/** Member mood animation — update visuals based on mood */
+/** Member mood animation — no scaling, just subtle feedback */
 export function animateMood(node: Node, mood: Mood): void {
-    switch (mood) {
-        case Mood.Happy:
-            restoreScale(node);
-            pulse(node);
-            break;
-        case Mood.Neutral:
-            restoreScale(node);
-            break;
-        case Mood.Sad:
-            shrink(node);
-            break;
-        case Mood.Angry:
-            shake(node, 5);
-            greyOut(node);
-            break;
-    }
+    // No scale changes to avoid breaking member card layout
 }
 
 /** Assign task animation — card flies toward member */

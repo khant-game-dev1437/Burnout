@@ -41,6 +41,9 @@ export class GameManager extends Component {
     @property({ type: Node })
     waveTransitionNode: Node = null!;
 
+    @property({ type: Label })
+    powerUpLabel: Label = null!;
+
     // State
     private currentWave: number = 0;
     private currentPhase: GamePhase = GamePhase.WaveStart;
@@ -52,6 +55,9 @@ export class GameManager extends Component {
     private waveTimer: number = 0;
     private isTimerRunning: boolean = false;
     private uiRefreshAccum: number = 0;
+
+    // Got Powerup
+    private powerUpCount: number = 0;
 
     start(): void {
         this.registerEvents();
@@ -168,6 +174,26 @@ export class GameManager extends Component {
         }
     }
 
+    private usePowerUp(): void {
+        if (this.powerUpCount <= 0) {
+            return;
+        }
+
+        this.powerUpCount--;
+
+        const members = this.teamSpawner.getMembers();
+        for (const member of members) {
+            if (!member.burnedOut && !member.disengaged) {
+                member.energy = member.maxEnergy;
+            }
+        }
+
+        gameEvents.emit(GameEvent.CHAT_MESSAGE, 'Power-up used! Team energy restored.', 'System');
+        this.teamSpawner.refreshAll();
+
+         this.powerUpLabel.string = this.powerUpCount.toString();
+    }   
+
     private beginAssignmentPhase(): void {
         this.setPhase(GamePhase.Assignment);
         this.taskSpawner.spawnWaveTasks(TASKS_PER_WAVE);
@@ -178,6 +204,12 @@ export class GameManager extends Component {
 
         gameEvents.emit(GameEvent.WAVE_STARTED, this.currentWave);
         gameEvents.emit(GameEvent.CHAT_MESSAGE, `Wave ${this.currentWave}: ${TASKS_PER_WAVE} new tasks incoming!`, 'System');
+
+        if(this.currentWave % 2 == 0) {
+            this.powerUpCount++;
+
+            this.powerUpLabel.string = this.powerUpCount.toString();
+        }
     }
 
     private endWave(): void {
@@ -281,14 +313,9 @@ export class GameManager extends Component {
         member.totalTasksCompleted++;
         task.assignedTo = member.displayName;
 
-        // Animate member reaction
-        if (member.burnedOut) {
-            Anim.shake(member.node, 15);
-            Anim.greyOut(member.node);
-        } else if (isBadMatch) {
+        // Animate member reaction — shake only, no scaling
+        if (member.burnedOut || isBadMatch) {
             Anim.shake(member.node, 8);
-        } else if (isGoodMatch) {
-            Anim.pulse(member.node);
         }
 
         // Remove task card and update UI

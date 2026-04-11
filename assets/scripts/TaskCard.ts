@@ -1,4 +1,5 @@
 import { _decorator, Component, Label, Sprite, Color, Node, Vec3, UITransform, EventTouch, find, tween } from 'cc';
+import { AudioManager } from './AudioManager';
 
 const { ccclass, property } = _decorator;
 
@@ -20,6 +21,7 @@ export class TaskCard extends Component {
     @property({ type: Sprite })
     background: Sprite = null!;
 
+
     private _originalColor: Color = new Color();
     private _originalParent: Node = null!;
     private _originalIndex: number = 0;
@@ -31,7 +33,7 @@ export class TaskCard extends Component {
     private _pressing: boolean = false;
     private _pressTimer: number = 0;
     private _pressStartPos: Vec3 = new Vec3();
-    private static readonly LONG_PRESS_TIME = 0.5;   // seconds to hold before drag
+    private static readonly LONG_PRESS_TIME = 0.25;   // seconds to hold before drag
     private static readonly MOVE_THRESHOLD = 10;       // px — cancel if finger moves too much
 
     // Callback — TaskSpawner sets this. Returns true if assigned.
@@ -91,6 +93,7 @@ export class TaskCard extends Component {
     private startDrag(): void {
         if (this._assigned) return;
         this._dragging = true;
+        if (AudioManager.instance) AudioManager.instance.playClick();
 
         // Save original state
         this._originalParent = this.node.parent!;
@@ -151,6 +154,7 @@ export class TaskCard extends Component {
         }
 
         if (success) {
+            if (AudioManager.instance) AudioManager.instance.playClick();
             // Card will be destroyed by markAssigned — hide immediately so it's not visible on Canvas
             this.node.active = false;
             return;

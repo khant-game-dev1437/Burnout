@@ -204,7 +204,7 @@ export class TeamMember extends Component {
     public assignTask(taskSkill: SkillType, taskDifficulty: number): { quality: number; message: string } {
         this.assignedTaskCount++;
 
-        let energyCost = taskDifficulty * BASE_ENERGY_COST;
+        let energyCost = 15 + taskDifficulty * 10;   // diff1=25, diff2=35, diff3=45
         let moraleCost = BASE_MORALE_COST;
         let quality = BASE_QUALITY;
         let message = '';
@@ -212,12 +212,12 @@ export class TeamMember extends Component {
         if (taskSkill === this.strength) {
             quality += STRENGTH_QUALITY_BONUS;
             energyCost *= STRENGTH_ENERGY_MULT;
-            moraleCost = STRENGTH_MORALE_BOOST;
+            moraleCost = -(15 + taskDifficulty * 5);   // diff1=+20, diff2=+25, diff3=+30
             message = dialog('strengthMatch', this._memberDisplayName);
         } else if (taskSkill === this.weakness) {
             quality -= WEAKNESS_QUALITY_PENALTY;
             energyCost *= WEAKNESS_ENERGY_MULT;
-            moraleCost = WEAKNESS_MORALE_COST;
+            moraleCost = WEAKNESS_MORALE_COST + (taskDifficulty * 3);  // harder mismatch = slightly worse
             message = dialog('weaknessMatch', this._memberDisplayName);
         } else {
             message = dialog('neutralMatch', this._memberDisplayName);
