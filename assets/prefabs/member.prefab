@@ -1572,7 +1572,7 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 86.60598754882812,
+      "width": 0,
       "height": 37.8
     },
     "_anchorPoint": {
@@ -1608,7 +1608,7 @@
       "b": 255,
       "a": 255
     },
-    "_string": "Happy",
+    "_string": "",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 30,

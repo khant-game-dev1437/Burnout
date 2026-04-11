@@ -44,6 +44,18 @@ export class InsightManager extends Component {
         gameEvents.on(GameEvent.NEW_GAME, this.onNewGame, this);
     }
 
+    onDestroy(): void {
+        gameEvents.off(GameEvent.TASK_ASSIGNED, this.onTaskAssigned, this);
+        gameEvents.off(GameEvent.MEMBER_BURNOUT, this.onBurnout, this);
+        gameEvents.off(GameEvent.MEMBER_DISENGAGED, this.onDisengaged, this);
+        gameEvents.off(GameEvent.ONE_ON_ONE, this.onOneOnOne, this);
+        gameEvents.off(GameEvent.DELEGATE_UP, this.onDelegateUp, this);
+        gameEvents.off(GameEvent.BOSS_INTERRUPT, this.onBossInterrupt, this);
+        gameEvents.off(GameEvent.WAVE_STARTED, this.onWaveStarted, this);
+        gameEvents.off(GameEvent.WAVE_ENDED, this.onWaveEnded, this);
+        gameEvents.off(GameEvent.NEW_GAME, this.onNewGame, this);
+    }
+
     private showInsight(trigger: string): void {
         const insight = INSIGHTS.find(i => i.trigger === trigger && !i.shown);
         if (!insight) return;

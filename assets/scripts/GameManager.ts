@@ -20,6 +20,7 @@ const MAX_WAVES = 10;
 const WAVE_DURATION = 20;           // seconds per wave
 const TASKS_PER_WAVE = 10;
 const MORALE_DRAIN_RATE = 2;        // morale lost per second for idle eager members
+const ENERGY_RECOVERY_RATE = 1.5;   // energy recovered per second when not working
 const UI_REFRESH_INTERVAL = 0.05;   // refresh member UI bars ~20fps for smooth drain
 
 @ccclass('GameManager')
@@ -32,13 +33,13 @@ export class GameManager extends Component {
     teamSpawner: TeamSpawner = null!;
 
     @property({ type: Label })
-    lblDay: Label = null!;
+    lblWave: Label = null!;
 
     @property({ type: Label })
     lblPhase: Label = null!;
 
     @property({ type: Node })
-    dayTransitionNode: Node = null!;
+    waveTransitionNode: Node = null!;
 
     // State
     private currentWave: number = 0;
@@ -55,6 +56,10 @@ export class GameManager extends Component {
     start(): void {
         this.registerEvents();
         this.startWave();
+    }
+
+    onDestroy(): void {
+        gameEvents.off(GameEvent.MEMBER_CLICKED, this.onMemberClicked, this);
     }
 
     // ── Timer Loop ─────────────────────────────────────
@@ -96,15 +101,18 @@ export class GameManager extends Component {
     private drainEagerMembers(dt: number): void {
         const members = this.teamSpawner.getMembers();
         for (const member of members) {
-            // Drain morale for all active members — assigning tasks boosts morale but doesn't stop the drain
-            if (!member.burnedOut && !member.disengaged) {
-                const becameDisengaged = member.drainMorale(dt * MORALE_DRAIN_RATE);
-                if (becameDisengaged) {
-                    gameEvents.emit(GameEvent.MEMBER_DISENGAGED, member);
-                    gameEvents.emit(GameEvent.CHAT_MESSAGE,
-                        `${member.displayName} feels ignored and has disengaged...`, 'System');
-                }
+            if (member.burnedOut || member.disengaged) continue;
+
+            // Drain morale for all active members
+            const becameDisengaged = member.drainMorale(dt * MORALE_DRAIN_RATE);
+            if (becameDisengaged) {
+                gameEvents.emit(GameEvent.MEMBER_DISENGAGED, member);
+                gameEvents.emit(GameEvent.CHAT_MESSAGE,
+                    `${member.displayName} feels ignored and has disengaged...`, 'System');
             }
+
+            // Slowly recover energy for all active members
+            member.recoverEnergy(dt * ENERGY_RECOVERY_RATE);
         }
     }
 
@@ -148,11 +156,11 @@ export class GameManager extends Component {
         }
 
         // Update UI
-        if (this.lblDay) this.lblDay.string = `Wave ${this.currentWave} / ${MAX_WAVES}`;
+        if (this.lblWave) this.lblWave.string = `Wave ${this.currentWave} / ${MAX_WAVES}`;
 
         // Transition animation or direct start
-        if (this.dayTransitionNode) {
-            Anim.dayTransition(this.dayTransitionNode, this.currentWave, () => {
+        if (this.waveTransitionNode) {
+            Anim.waveTransition(this.waveTransitionNode, this.currentWave, () => {
                 this.beginAssignmentPhase();
             });
         } else {

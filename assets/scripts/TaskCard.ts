@@ -105,7 +105,7 @@ export class TaskCard extends Component {
             this.node.worldPosition = worldPos;
         }
 
-        this.node.setScale(new Vec3(0.6, 0.6, 1));
+        this.node.setScale(new Vec3(1, 1, 1));
 
         // Listen on canvas for move/end
         const canvas2 = find('Canvas');

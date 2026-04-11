@@ -2,16 +2,9 @@ import { _decorator, Component, Prefab, instantiate, Node, Label, Sprite, Color,
 import { TeamMember, SkillType, Mood } from './TeamMember';
 import { gameEvents, GameEvent } from './GameEvents';
 import { bounceIn, animateMood, animateBar } from './GameAnimations';
+import { SKILL_NAMES, COLOR_GREEN, COLOR_YELLOW, COLOR_RED, COLOR_BLUE } from './GameConstants';
 
 const { ccclass, property } = _decorator;
-
-const SKILL_NAMES = ['Technical', 'Creative', 'Communication', 'Design'];
-const SKILL_COLORS: Record<number, string> = {
-    [SkillType.Technical]: '#409EFF',
-    [SkillType.Creative]: '#E6A23C',
-    [SkillType.Communication]: '#67C23A',
-    [SkillType.Design]: '#B266FF',
-};
 
 // ── Member Config ───────────────────────────────────
 
@@ -143,9 +136,9 @@ export class TeamSpawner extends Component {
                 const fillSprite = fill.getComponent(Sprite);
                 if (fillSprite) {
                     // Green when high, yellow mid, red low
-                    if (member.energy > 60) fillSprite.color = new Color('#2ECC71');
-                    else if (member.energy > 30) fillSprite.color = new Color('#F39C12');
-                    else fillSprite.color = new Color('#E74C3C');
+                    if (member.energy > 60) fillSprite.color = new Color(COLOR_GREEN);
+                    else if (member.energy > 30) fillSprite.color = new Color(COLOR_YELLOW);
+                    else fillSprite.color = new Color(COLOR_RED);
                 }
             }
         }
@@ -163,9 +156,9 @@ export class TeamSpawner extends Component {
                 }
                 const fillSprite = fill.getComponent(Sprite);
                 if (fillSprite) {
-                    if (member.morale > 60) fillSprite.color = new Color('#3498DB');
-                    else if (member.morale > 30) fillSprite.color = new Color('#F39C12');
-                    else fillSprite.color = new Color('#E74C3C');
+                    if (member.morale > 60) fillSprite.color = new Color(COLOR_BLUE);
+                    else if (member.morale > 30) fillSprite.color = new Color(COLOR_YELLOW);
+                    else fillSprite.color = new Color(COLOR_RED);
                 }
             }
         }
@@ -191,10 +184,10 @@ export class TeamSpawner extends Component {
             if (label) {
                 if (member.burnedOut) {
                     label.string = 'BURNED OUT';
-                    label.color = new Color('#E74C3C');
+                    label.color = new Color(COLOR_RED);
                 } else if (member.disengaged) {
                     label.string = 'DISENGAGED';
-                    label.color = new Color('#F39C12');
+                    label.color = new Color(COLOR_YELLOW);
                 } else {
                     label.string = '';
                 }

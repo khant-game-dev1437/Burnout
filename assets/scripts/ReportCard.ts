@@ -1,9 +1,10 @@
-import { _decorator, Component, Node, Label, Sprite, Color, UITransform, Widget, find, Size, tween, Vec3 } from 'cc';
+import { _decorator, Component, Node, Label, Button, Color } from 'cc';
 import { gameEvents, GameEvent } from './GameEvents';
 import { TeamMember } from './TeamMember';
 import { TaskInfo } from './TaskData';
+import { scoreColor, COLOR_RED, COLOR_YELLOW } from './GameConstants';
 
-const { ccclass } = _decorator;
+const { ccclass, property } = _decorator;
 
 // ── Tracking Data ──────────────────────────────────
 
@@ -85,14 +86,14 @@ const ARCHETYPES: Archetype[] = [
 // ── Team Feedback ──────────────────────────────────
 
 function getMemberFeedback(stats: MemberStats): string {
-    if (stats.burnedOut) return `"You broke me."`;
-    if (stats.disengaged) return `"You forgot I existed."`;
-    if (stats.tasksAssigned === 0) return `"I had nothing to do."`;
-    if (stats.weaknessMatches > stats.strengthMatches) return `"Wrong tasks, every time."`;
-    if (stats.strengthMatches >= 3) return `"You let me shine. Thanks."`;
-    if (stats.received1on1) return `"That chat meant a lot."`;
-    if (stats.tasksAssigned >= 6) return `"It was a LOT of work."`;
-    return `"It was okay, I guess."`;
+    if (stats.burnedOut) return '"You broke me."';
+    if (stats.disengaged) return '"You forgot I existed."';
+    if (stats.tasksAssigned === 0) return '"I had nothing to do."';
+    if (stats.weaknessMatches > stats.strengthMatches) return '"Wrong tasks, every time."';
+    if (stats.strengthMatches >= 3) return '"You let me shine. Thanks."';
+    if (stats.received1on1) return '"That chat meant a lot."';
+    if (stats.tasksAssigned >= 6) return '"It was a LOT of work."';
+    return '"It was okay, I guess."';
 }
 
 // ── ReportCard Component ───────────────────────────
@@ -100,10 +101,61 @@ function getMemberFeedback(stats: MemberStats): string {
 @ccclass('ReportCard')
 export class ReportCard extends Component {
 
+    // Popup root — hide/show this node
+    @property({ type: Node })
+    popup: Node = null!;
+
+    // Labels
+    @property({ type: Label })
+    lblTitle: Label = null!;
+
+    @property({ type: Label })
+    lblArchetype: Label = null!;
+
+    @property({ type: Label })
+    lblArchetypeDesc: Label = null!;
+
+    @property({ type: Label })
+    lblDelegation: Label = null!;
+
+    @property({ type: Label })
+    lblEmpathy: Label = null!;
+
+    @property({ type: Label })
+    lblPrioritization: Label = null!;
+
+    @property({ type: Label })
+    lblOverall: Label = null!;
+
+    @property({ type: Label })
+    lblFeedback1: Label = null!;
+
+    @property({ type: Label })
+    lblFeedback2: Label = null!;
+
+    @property({ type: Label })
+    lblFeedback3: Label = null!;
+
+    @property({ type: Label })
+    lblFeedback4: Label = null!;
+
+    @property({ type: Button })
+    btnPlayAgain: Button = null!;
+
+    @property({ type: Node })
+    gameManagerNode: Node = null!;
+
     private stats: GameStats = this.freshStats();
-    private popupNode: Node | null = null;
 
     start(): void {
+        // Hide popup at start
+        if (this.popup) this.popup.active = false;
+
+        // Play again button
+        if (this.btnPlayAgain) {
+            this.btnPlayAgain.node.on('click', this.onPlayAgain, this);
+        }
+
         gameEvents.on(GameEvent.TASK_ASSIGNED, this.onTaskAssigned, this);
         gameEvents.on(GameEvent.TASK_SKIPPED, this.onTaskSkipped, this);
         gameEvents.on(GameEvent.MEMBER_BURNOUT, this.onBurnout, this);
@@ -115,6 +167,20 @@ export class ReportCard extends Component {
         gameEvents.on(GameEvent.GAME_OVER, this.onGameEnd, this);
         gameEvents.on(GameEvent.GAME_WON, this.onGameEnd, this);
         gameEvents.on(GameEvent.NEW_GAME, this.onNewGame, this);
+    }
+
+    onDestroy(): void {
+        gameEvents.off(GameEvent.TASK_ASSIGNED, this.onTaskAssigned, this);
+        gameEvents.off(GameEvent.TASK_SKIPPED, this.onTaskSkipped, this);
+        gameEvents.off(GameEvent.MEMBER_BURNOUT, this.onBurnout, this);
+        gameEvents.off(GameEvent.MEMBER_DISENGAGED, this.onDisengaged, this);
+        gameEvents.off(GameEvent.ONE_ON_ONE, this.onOneOnOne, this);
+        gameEvents.off(GameEvent.DELEGATE_UP, this.onDelegateUp, this);
+        gameEvents.off(GameEvent.BOSS_INTERRUPT, this.onBossInterrupt, this);
+        gameEvents.off(GameEvent.WAVE_ENDED, this.onWaveEnded, this);
+        gameEvents.off(GameEvent.GAME_OVER, this.onGameEnd, this);
+        gameEvents.off(GameEvent.GAME_WON, this.onGameEnd, this);
+        gameEvents.off(GameEvent.NEW_GAME, this.onNewGame, this);
     }
 
     private freshStats(): GameStats {
@@ -155,15 +221,14 @@ export class ReportCard extends Component {
     private onBossInterrupt(): void { this.stats.bossInterrupts++; }
     private onWaveEnded(): void { this.stats.wavesCompleted++; }
 
-    // ── Popup UI ───────────────────────────────────
+    // ── Show / Hide ────────────────────────────────
 
     private onGameEnd(): void {
         this.scheduleOnce(() => this.showPopup(), 1.5);
     }
 
     private showPopup(): void {
-        const canvas = find('Canvas');
-        if (!canvas) return;
+        if (!this.popup) return;
 
         const s = this.stats;
         const archetype = ARCHETYPES.find(a => a.condition(s))!;
@@ -172,135 +237,98 @@ export class ReportCard extends Component {
         const prioritization = this.getPrioritizationScore();
         const overall = Math.round((delegation + empathy + prioritization) / 3);
 
-        // ── Overlay (dim background)
-        const overlay = new Node('ReportOverlay');
-        canvas.addChild(overlay);
-        const overlaySprite = overlay.addComponent(Sprite);
-        overlaySprite.color = new Color(0, 0, 0, 180);
-        overlaySprite.sizeMode = Sprite.SizeMode.CUSTOM;
-        const overlayTransform = overlay.getComponent(UITransform)!;
-        overlayTransform.contentSize = new Size(2000, 2000);
-        const overlayWidget = overlay.addComponent(Widget);
-        overlayWidget.isAlignTop = true;
-        overlayWidget.isAlignBottom = true;
-        overlayWidget.isAlignLeft = true;
-        overlayWidget.isAlignRight = true;
-        overlayWidget.top = 0; overlayWidget.bottom = 0;
-        overlayWidget.left = 0; overlayWidget.right = 0;
+        // Archetype
+        if (this.lblTitle) this.lblTitle.string = 'LEADERSHIP REPORT CARD';
+        if (this.lblArchetype) this.lblArchetype.string = archetype.name;
+        if (this.lblArchetypeDesc) this.lblArchetypeDesc.string = archetype.description;
 
-        // ── Popup container
-        const popup = new Node('ReportPopup');
-        overlay.addChild(popup);
-        const popupTransform = popup.addComponent(UITransform);
-        popupTransform.contentSize = new Size(500, 550);
-        const popupBg = popup.addComponent(Sprite);
-        popupBg.color = new Color(30, 30, 46, 240);
-        popupBg.sizeMode = Sprite.SizeMode.CUSTOM;
-
-        // Animate popup scale in
-        popup.setScale(new Vec3(0, 0, 1));
-        tween(popup).to(0.3, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' }).start();
-
-        let yPos = 230;
-
-        // ── Title
-        yPos = this.addLabel(popup, 'LEADERSHIP REPORT CARD', 28, '#FFFFFF', yPos);
-        yPos -= 15;
-
-        // ── Archetype
-        yPos = this.addLabel(popup, `"${archetype.name}"`, 24, '#F1C40F', yPos);
-        yPos = this.addLabel(popup, archetype.description, 16, '#BBBBBB', yPos);
-        yPos -= 15;
-
-        // ── Scores
-        yPos = this.addLabel(popup, '── Scores ──', 18, '#FFFFFF', yPos);
-        yPos = this.addLabel(popup, `Delegation: ${delegation}/100`, 16, this.scoreColor(delegation), yPos);
-        yPos = this.addLabel(popup, `Empathy: ${empathy}/100`, 16, this.scoreColor(empathy), yPos);
-        yPos = this.addLabel(popup, `Prioritization: ${prioritization}/100`, 16, this.scoreColor(prioritization), yPos);
-        yPos = this.addLabel(popup, `Overall: ${overall}/100`, 20, this.scoreColor(overall), yPos);
-        yPos -= 15;
-
-        // ── Team Feedback
-        yPos = this.addLabel(popup, '── Team Feedback ──', 18, '#FFFFFF', yPos);
-        for (const [, ms] of s.memberStats) {
-            const feedback = getMemberFeedback(ms);
-            const nameColor = ms.burnedOut ? '#E74C3C' : ms.disengaged ? '#F39C12' : '#2ECC71';
-            yPos = this.addLabel(popup, `${ms.name}: ${feedback}`, 14, nameColor, yPos);
+        // Scores
+        if (this.lblDelegation) {
+            this.lblDelegation.string = `Delegation: ${delegation}/100`;
+            this.lblDelegation.color = new Color(this.getScoreColor(delegation));
         }
-        yPos -= 15;
+        if (this.lblEmpathy) {
+            this.lblEmpathy.string = `Empathy: ${empathy}/100`;
+            this.lblEmpathy.color = new Color(this.getScoreColor(empathy));
+        }
+        if (this.lblPrioritization) {
+            this.lblPrioritization.string = `Prioritization: ${prioritization}/100`;
+            this.lblPrioritization.color = new Color(this.getScoreColor(prioritization));
+        }
+        if (this.lblOverall) {
+            this.lblOverall.string = `Overall: ${overall}/100`;
+            this.lblOverall.color = new Color(this.getScoreColor(overall));
+        }
 
-        // ── Play Again hint
-        this.addLabel(popup, 'Tap to close', 14, '#888888', yPos);
+        // Team feedback
+        const feedbackLabels = [this.lblFeedback1, this.lblFeedback2, this.lblFeedback3, this.lblFeedback4];
+        const memberEntries = [...s.memberStats.values()];
+        for (let i = 0; i < feedbackLabels.length; i++) {
+            const lbl = feedbackLabels[i];
+            if (!lbl) continue;
+            if (i < memberEntries.length) {
+                const ms = memberEntries[i];
+                lbl.string = `${ms.name}: ${getMemberFeedback(ms)}`;
+                lbl.color = new Color(ms.burnedOut ? COLOR_RED : ms.disengaged ? COLOR_YELLOW : '#FFFFFF');
+            } else {
+                lbl.string = '';
+            }
+        }
 
-        // Close on tap
-        overlay.on(Node.EventType.TOUCH_END, () => {
-            tween(popup).to(0.2, { scale: new Vec3(0, 0, 1) }).call(() => {
-                overlay.removeFromParent();
-                overlay.destroy();
-            }).start();
-        });
-
-        this.popupNode = overlay;
+        this.popup.active = true;
+        // Bring to front so it's above all other UI
+        this.popup.setSiblingIndex(this.popup.parent!.children.length - 1);
     }
 
-    private addLabel(parent: Node, text: string, fontSize: number, color: string, yPos: number): number {
-        const node = new Node();
-        parent.addChild(node);
-        const label = node.addComponent(Label);
-        label.string = text;
-        label.fontSize = fontSize;
-        label.lineHeight = fontSize + 6;
-        label.color = new Color(color);
-        label.overflow = Label.Overflow.RESIZE_HEIGHT;
-        const transform = node.getComponent(UITransform)!;
-        transform.width = 440;
-        node.setPosition(0, yPos, 0);
-        return yPos - fontSize - 10;
+    private hidePopup(): void {
+        if (this.popup) this.popup.active = false;
     }
 
-    private scoreColor(score: number): string {
-        if (score >= 70) return '#2ECC71';
-        if (score >= 40) return '#F39C12';
-        return '#E74C3C';
+    private onPlayAgain(): void {
+        this.hidePopup();
+        if (this.gameManagerNode) {
+            const gm = this.gameManagerNode.getComponent('GameManager') as any;
+            if (gm) gm.onNewGame();
+        }
+    }
+
+    private getScoreColor(score: number): string {
+        return scoreColor(score);
     }
 
     // ── Scoring ────────────────────────────────────
 
     private getDelegationScore(): number {
         const counts = [...this.stats.memberStats.values()].map(m => m.tasksAssigned);
-        if (counts.length === 0) return 0;
+        if (counts.length === 0 || this.stats.totalTasksAssigned === 0) return 0;
         const avg = counts.reduce((a, b) => a + b, 0) / counts.length;
-        if (avg === 0) return 0;
         const variance = counts.reduce((sum, c) => sum + Math.pow(c - avg, 2), 0) / counts.length;
         return Math.max(0, Math.min(100, Math.round(100 - Math.sqrt(variance) * 15)));
     }
 
     private getEmpathyScore(): number {
-        let score = 50;
-        score += this.stats.oneOnOnes * 15;
-        score -= this.stats.burnouts * 20;
-        score -= this.stats.disengagements * 15;
-        score -= this.stats.weaknessMatches * 3;
-        score += this.stats.strengthMatches * 2;
+        if (this.stats.totalTasksAssigned === 0) return 0;
+        let score = 0;
+        score += this.stats.oneOnOnes * 20;
+        score += this.stats.strengthMatches * 5;
+        score -= this.stats.burnouts * 25;
+        score -= this.stats.disengagements * 20;
+        score -= this.stats.weaknessMatches * 5;
         return Math.max(0, Math.min(100, score));
     }
 
     private getPrioritizationScore(): number {
-        let score = 50;
-        score += this.stats.delegateUps * 10;
+        if (this.stats.totalTasksAssigned === 0) return 0;
+        let score = 0;
+        score += this.stats.delegateUps * 15;
         const total = this.stats.totalTasksAssigned + this.stats.totalTasksSkipped;
-        if (total > 0) score += Math.round((this.stats.totalTasksAssigned / total) * 30);
-        score += this.stats.wavesCompleted * 3;
-        score -= this.stats.totalTasksSkipped;
+        if (total > 0) score += Math.round((this.stats.totalTasksAssigned / total) * 50);
+        score += this.stats.wavesCompleted * 5;
         return Math.max(0, Math.min(100, score));
     }
 
     private onNewGame(): void {
         this.stats = this.freshStats();
-        if (this.popupNode) {
-            this.popupNode.removeFromParent();
-            this.popupNode.destroy();
-            this.popupNode = null;
-        }
+        this.hidePopup();
     }
 }

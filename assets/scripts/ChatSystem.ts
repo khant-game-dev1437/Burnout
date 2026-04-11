@@ -4,19 +4,14 @@ import { ChatBubble } from './ChatBubble';
 import { TeamMember } from './TeamMember';
 import { TaskInfo } from './TaskData';
 import { bounceIn } from './GameAnimations';
+import { MEMBER_NAMES, MEMBER_COLORS } from './GameConstants';
 
 const { ccclass, property } = _decorator;
 
 const SYSTEM_COLOR = '#888888';
 const MAX_MESSAGES = 20;
 
-// Member colors — matched to TeamSpawner
-const MEMBER_COLORS: Record<string, string> = {
-    'Min Khant': '#3498DB',
-    'Leo': '#E67E22',
-    'Timber Saw': '#2ECC71',
-    'Chris': '#9B59B6',
-};
+// Member colors imported from GameConstants
 
 // ── Chat Reaction Templates ─────────────────────────
 
@@ -89,6 +84,17 @@ export class ChatSystem extends Component {
     start(): void {
         this.registerEvents();
     }
+
+    onDestroy(): void {
+        gameEvents.off(GameEvent.CHAT_MESSAGE, this.onChatMessage, this);
+        gameEvents.off(GameEvent.TASK_ASSIGNED, this.onTaskAssigned, this);
+        gameEvents.off(GameEvent.MEMBER_BURNOUT, this.onBurnout, this);
+        gameEvents.off(GameEvent.MEMBER_DISENGAGED, this.onDisengaged, this);
+        gameEvents.off(GameEvent.ONE_ON_ONE, this.onOneOnOne, this);
+        gameEvents.off(GameEvent.WAVE_STARTED, this.onWaveStarted, this);
+        gameEvents.off(GameEvent.DELEGATE_UP, this.onDelegateUp, this);
+        gameEvents.off(GameEvent.NEW_GAME, this.onNewGame, this);
+    }
     
     private registerEvents(): void {
         gameEvents.on(GameEvent.CHAT_MESSAGE, this.onChatMessage, this);
@@ -143,14 +149,14 @@ export class ChatSystem extends Component {
     }
 
     private onWaveStarted(wave: number): void {
-        const names = ['Min Khant', 'Leo', 'Timber Saw', 'Chris'];
+        const names = MEMBER_NAMES;
         const name = pickRandom(names);
         const color = MEMBER_COLORS[name] || '#FFFFFF';
         this.addBubble(name, pickRandom(REACTIONS.waveStart), color);
     }
 
     private onDelegateUp(): void {
-        const names = ['Min Khant', 'Leo', 'Timber Saw', 'Chris'];
+        const names = MEMBER_NAMES;
         const name = pickRandom(names);
         const color = MEMBER_COLORS[name] || '#FFFFFF';
         this.addBubble(name, pickRandom(REACTIONS.delegateUp), color);

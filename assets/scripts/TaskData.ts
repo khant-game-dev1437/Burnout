@@ -35,7 +35,7 @@ const TASK_POOL = [
 ];
 
 const BOSS_TASKS = [
-    { title: 'CEO Presentation - ASAP', skill: SkillType.Communication },
+    { title: 'CEO Meeting', skill: SkillType.Communication },
     { title: 'Emergency Hotfix', skill: SkillType.Technical },
     { title: 'Investor Demo', skill: SkillType.Creative },
     { title: 'Compliance Deadline', skill: SkillType.Design },

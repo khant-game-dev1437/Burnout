@@ -54,6 +54,12 @@ export class BossEvent extends Component {
         gameEvents.on(GameEvent.NEW_GAME, this.onNewGame, this);
     }
 
+    onDestroy(): void {
+        gameEvents.off(GameEvent.WAVE_STARTED, this.onWaveStarted, this);
+        gameEvents.off(GameEvent.TIMER_UPDATE, this.onTimerUpdate, this);
+        gameEvents.off(GameEvent.NEW_GAME, this.onNewGame, this);
+    }
+
     private onWaveStarted(wave: number): void {
         this.bossInterruptUsedThisWave = false;
         this.randomEventUsedThisWave = false;

@@ -1,5 +1,4 @@
 import { Node, tween, Vec3, Color, Sprite, Label, UIOpacity, UITransform } from 'cc';
-import { gameEvents, GameEvent } from './GameEvents';
 import { Mood } from './TeamMember';
 
 // ── Tween Helpers ───────────────────────────────────
@@ -117,10 +116,10 @@ export function animateBar(barFill: Node, targetWidth: number, duration: number 
         .start();
 }
 
-/** Day transition — big text fades in and out */
-export function dayTransition(node: Node, day: number, callback: () => void): void {
+/** Wave transition — big text fades in and out */
+export function waveTransition(node: Node, wave: number, callback: () => void): void {
     const label = node.getComponent(Label);
-    if (label) label.string = `Day ${day}`;
+    if (label) label.string = `Wave ${wave}`;
 
     let opacity = node.getComponent(UIOpacity);
     if (!opacity) opacity = node.addComponent(UIOpacity);

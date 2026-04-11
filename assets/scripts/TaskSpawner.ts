@@ -5,6 +5,7 @@ import { TaskCard } from './TaskCard';
 import { TeamSpawner } from './TeamSpawner';
 import { bounceIn } from './GameAnimations';
 import { gameEvents, GameEvent } from './GameEvents';
+import { SKILL_NAMES, SKILL_COLORS } from './GameConstants';
 
 const { ccclass, property } = _decorator;
 
@@ -15,15 +16,7 @@ const PRIORITY_COLORS: Record<number, string> = {
     [TaskPriority.Urgent]: '#FF0000',
 };
 
-const SKILL_COLORS: Record<number, string> = {
-    [SkillType.Technical]: '#409EFF',
-    [SkillType.Creative]: '#E6A23C',
-    [SkillType.Communication]: '#67C23A',
-    [SkillType.Design]: '#B266FF',
-};
-
 const PRIORITY_NAMES = ['Low', 'Medium', 'High', 'Urgent'];
-const SKILL_NAMES = ['Technical', 'Creative', 'Communication', 'Design'];
 
 @ccclass('TaskSpawner')
 export class TaskSpawner extends Component {
@@ -152,11 +145,11 @@ export class TaskSpawner extends Component {
         const stars = '\u2605'.repeat(level) + '\u2606'.repeat(3 - level);
         card.setPriority(stars, PRIORITY_COLORS[task.priority]);
 
-        // Random background color
+        // Dark muted background so skill text colors stay readable
         if (card.background) {
-            const r = Math.floor(Math.random() * 256);
-            const g = Math.floor(Math.random() * 256);
-            const b = Math.floor(Math.random() * 256);
+            const r = 30 + Math.floor(Math.random() * 30);
+            const g = 30 + Math.floor(Math.random() * 30);
+            const b = 35 + Math.floor(Math.random() * 30);
             card.background.color = new Color(r, g, b, 255);
         }
 
@@ -174,36 +167,27 @@ export class TaskSpawner extends Component {
     /** Check if card was dropped on a team member. Returns true if assigned. */
     private handleDrop(task: TaskInfo, cardNode: Node, worldPos: Vec3): boolean {
         if (!this.teamSpawner) {
-            console.log('[TaskSpawner] No teamSpawner reference!');
-            return false;
+                return false;
         }
 
         const members = this.teamSpawner.getMembers();
         const memberNodes = this.teamSpawner.node.children;
-
-        console.log(`[TaskSpawner] Drop at world pos: ${worldPos.x}, ${worldPos.y}. Checking ${memberNodes.length} members.`);
 
         for (let i = 0; i < memberNodes.length; i++) {
             const memberNode = memberNodes[i];
             const transform = memberNode.getComponent(UITransform);
             if (!transform) continue;
 
-            // Check using world bounding box — works regardless of parent transforms
             const bbox = transform.getBoundingBoxToWorld();
-
-            console.log(`[TaskSpawner] Member ${i}: bbox(${bbox.x}, ${bbox.y}, ${bbox.width}, ${bbox.height})`);
 
             if (bbox.contains(new Vec2(worldPos.x, worldPos.y))) {
                 const member = members[i];
-                console.log(`[TaskSpawner] Hit member: ${member.displayName}`);
                 if (member && this.onTaskDroppedOnMember) {
                     this.onTaskDroppedOnMember(task, member);
                     return true;
                 }
             }
         }
-
-        console.log('[TaskSpawner] No member hit.');
         return false;
     }
 

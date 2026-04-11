@@ -15,6 +15,52 @@ export enum Mood {
     Angry,
 }
 
+// ── Tuning Constants ───────────────────────────────
+
+const BASE_ENERGY_COST = 15;
+const BASE_QUALITY = 50;
+const BASE_MORALE_COST = 5;
+
+const STRENGTH_QUALITY_BONUS = 30;
+const STRENGTH_ENERGY_MULT = 0.7;
+const STRENGTH_MORALE_BOOST = -25;
+
+const WEAKNESS_QUALITY_PENALTY = 20;
+const WEAKNESS_ENERGY_MULT = 1.5;
+const WEAKNESS_MORALE_COST = 15;
+
+const SAD_ENERGY_MULT = 1.3;
+const SAD_MORALE_EXTRA = 5;
+
+const OVERLOAD_THRESHOLD = 3;
+const OVERLOAD_ENERGY_MULT = 1.5;
+const OVERLOAD_MORALE_EXTRA = 10;
+
+const LOW_ENERGY_THRESHOLD = 30;
+const SLOW_RECOVERY_ENERGY_MULT = 1.3;
+
+const BURNOUT_QUALITY_MULT = 0.3;
+const DISENGAGE_QUALITY_MULT = 0.5;
+
+const RECOVERY_ENERGY = 20;
+const SLOW_RECOVERY_ENERGY = 10;
+const SLOW_RECOVERY_THRESHOLD = 40;
+const BURNOUT_RECOVERY_THRESHOLD = 30;
+const BURNOUT_RECOVERY_ENERGY = 5;
+
+const IDLE_MORALE_PENALTY = 10;
+const DAYS_BEFORE_DISENGAGE = 2;
+const MORALE_RECOVERY_CAP = 50;
+const MORALE_RECOVERY_RATE = 5;
+
+const ONE_ON_ONE_BOOST = 25;
+const DISENGAGE_RECOVERY_THRESHOLD = 30;
+
+const MORALE_HAPPY = 70;
+const MORALE_NEUTRAL = 40;
+
+const INITIAL_MORALE = 70;
+
 // ── Dialogues ───────────────────────────────────────
 
 const DIALOGUES = {
@@ -82,7 +128,7 @@ function dialog(key: keyof typeof DIALOGUES, name: string, extra: Record<string,
     return result;
 }
 
-const MEMBER_COLORS = ['#4A90D9', '#E6A23C', '#67C23A', '#909399'];
+const MEMBER_COLORS = ['#3498DB', '#E67E22', '#2ECC71', '#9B59B6'];
 let colorIndex = 0;
 
 // ── Component ───────────────────────────────────────
@@ -146,9 +192,9 @@ export class TeamMember extends Component {
     private updateMood(): void {
         if (this.burnedOut || this.disengaged) {
             this.mood = Mood.Angry;
-        } else if (this.morale >= 70) {
+        } else if (this.morale >= MORALE_HAPPY) {
             this.mood = Mood.Happy;
-        } else if (this.morale >= 40) {
+        } else if (this.morale >= MORALE_NEUTRAL) {
             this.mood = Mood.Neutral;
         } else {
             this.mood = Mood.Sad;
@@ -158,40 +204,37 @@ export class TeamMember extends Component {
     public assignTask(taskSkill: SkillType, taskDifficulty: number): { quality: number; message: string } {
         this.assignedTaskCount++;
 
-        let energyCost = taskDifficulty * 15;
-        let moraleCost = 5;
-        let quality = 50;
+        let energyCost = taskDifficulty * BASE_ENERGY_COST;
+        let moraleCost = BASE_MORALE_COST;
+        let quality = BASE_QUALITY;
         let message = '';
 
         if (taskSkill === this.strength) {
-            quality += 30;
-            energyCost *= 0.7;
-            moraleCost = -25;       // strength match boosts morale significantly
+            quality += STRENGTH_QUALITY_BONUS;
+            energyCost *= STRENGTH_ENERGY_MULT;
+            moraleCost = STRENGTH_MORALE_BOOST;
             message = dialog('strengthMatch', this._memberDisplayName);
         } else if (taskSkill === this.weakness) {
-            quality -= 20;
-            energyCost *= 1.5;
-            moraleCost = 15;
+            quality -= WEAKNESS_QUALITY_PENALTY;
+            energyCost *= WEAKNESS_ENERGY_MULT;
+            moraleCost = WEAKNESS_MORALE_COST;
             message = dialog('weaknessMatch', this._memberDisplayName);
         } else {
             message = dialog('neutralMatch', this._memberDisplayName);
         }
 
-        // Sad members perform worse
         if (this.mood === Mood.Sad) {
-            energyCost *= 1.3;
-            moraleCost += 5;
+            energyCost *= SAD_ENERGY_MULT;
+            moraleCost += SAD_MORALE_EXTRA;
         }
 
-        // Slow recovery trait
-        if (this.slowRecovery && this.energy < 30) {
-            energyCost *= 1.3;
+        if (this.slowRecovery && this.energy < LOW_ENERGY_THRESHOLD) {
+            energyCost *= SLOW_RECOVERY_ENERGY_MULT;
         }
 
-        // Overload
-        if (this.assignedTaskCount > 3) {
-            energyCost *= 1.5;
-            moraleCost += 10;
+        if (this.assignedTaskCount > OVERLOAD_THRESHOLD) {
+            energyCost *= OVERLOAD_ENERGY_MULT;
+            moraleCost += OVERLOAD_MORALE_EXTRA;
             message = dialog('overloaded', this._memberDisplayName);
         }
 
@@ -200,13 +243,13 @@ export class TeamMember extends Component {
 
         if (this.energy <= 0) {
             this.burnedOut = true;
-            quality = Math.floor(quality * 0.3);
+            quality = Math.floor(quality * BURNOUT_QUALITY_MULT);
             message = dialog('burnedOut', this._memberDisplayName);
         }
 
         if (this.morale <= 0) {
             this.disengaged = true;
-            quality = Math.floor(quality * 0.5);
+            quality = Math.floor(quality * DISENGAGE_QUALITY_MULT);
             message = dialog('disengaged', this._memberDisplayName);
         }
 
@@ -220,9 +263,9 @@ export class TeamMember extends Component {
         if (this.assignedTaskCount === 0) {
             this.daysIgnored++;
             messages.push(dialog('idle', this._memberDisplayName));
-            this.morale = Math.max(0, this.morale - 10);
+            this.morale = Math.max(0, this.morale - IDLE_MORALE_PENALTY);
 
-            if (this.daysIgnored >= 2) {
+            if (this.daysIgnored >= DAYS_BEFORE_DISENGAGE) {
                 this.disengaged = true;
                 messages.push(dialog('idleIgnored', this._memberDisplayName, { days: this.daysIgnored }));
             }
@@ -230,20 +273,11 @@ export class TeamMember extends Component {
             this.daysIgnored = 0;
         }
 
-        if (!this.burnedOut) {
-            let recovery = 20;
-            if (this.slowRecovery && this.energy < 40) recovery = 10;
-            this.energy = Math.min(this.maxEnergy, this.energy + recovery);
-        } else {
-            this.energy = Math.min(this.maxEnergy, this.energy + 5);
-            if (this.energy >= 30) {
-                this.burnedOut = false;
-                messages.push(dialog('recovered', this._memberDisplayName));
-            }
-        }
-
-        if (!this.disengaged && this.morale < 50) {
-            this.morale = Math.min(50, this.morale + 5);
+        // Energy recovers in real-time during waves (see GameManager.drainEagerMembers)
+        // Burnout recovery check
+        if (this.burnedOut && this.energy >= BURNOUT_RECOVERY_THRESHOLD) {
+            this.burnedOut = false;
+            messages.push(dialog('recovered', this._memberDisplayName));
         }
 
         this.assignedTaskCount = 0;
@@ -252,9 +286,9 @@ export class TeamMember extends Component {
     }
 
     public oneOnOne(): string {
-        this.morale = Math.min(this.maxMorale, this.morale + 25);
+        this.morale = Math.min(this.maxMorale, this.morale + ONE_ON_ONE_BOOST);
         this.updateMood();
-        if (this.disengaged && this.morale > 30) {
+        if (this.disengaged && this.morale > DISENGAGE_RECOVERY_THRESHOLD) {
             this.disengaged = false;
             this.updateMood();
             return dialog('oneOnOneRecovery', this._memberDisplayName);
@@ -275,10 +309,16 @@ export class TeamMember extends Component {
         return false;
     }
 
+    /** Recover energy over time when not working */
+    public recoverEnergy(amount: number): void {
+        if (this.burnedOut || this.disengaged) return;
+        this.energy = Math.min(this.maxEnergy, this.energy + amount);
+    }
+
     public resetForNewGame(): void {
         this._memberDisplayName = this.memberName;
         this.energy = this.maxEnergy;
-        this.morale = 70;
+        this.morale = INITIAL_MORALE;
         this.burnedOut = false;
         this.disengaged = false;
         this.assignedTaskCount = 0;
