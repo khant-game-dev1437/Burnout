@@ -13,7 +13,7 @@ A leadership training mini-game where you play as a newly promoted team lead. Ta
 - **Delegation**: Player literally cannot do tasks — must assign to others
 - **Prioritization**: More tasks than capacity — must triage
 - **People awareness**: Must track energy/morale or face consequences
-- **Strengths-based leadership**: Skill matching boosts morale (+25); mismatches drain it
+- **Strengths-based leadership**: Skill matching boosts morale (scales with difficulty); mismatches drain it
 - **Saying no**: Delegate Up lets you push back on one task per game
 
 ## Team Members
@@ -31,16 +31,19 @@ A leadership training mini-game where you play as a newly promoted team lead. Ta
 4. **Unassigned tasks carry over** to the next wave — pressure builds!
 5. **All active members' morale drains in real-time** (~2/sec) — assigning strength-matched tasks is the only way to fight it
 6. **Energy recovers slowly** in real-time (~1.5/sec) for active members
-7. **Strength match morale boost scales with difficulty**: diff1=+20, diff2=+25, diff3=+30
-8. **Power-up potion** every 2 waves — refills all active members' energy to max (player-activated)
-9. Survive all 10 waves to win. 3+ burnouts or 3+ disengagements = game over
+7. **Morale boost scales with difficulty**: diff1=+20, diff2=+25, diff3=+30
+8. **Energy cost scales with difficulty**: diff1=25, diff2=35, diff3=45 (stars match difficulty)
+9. **Power-up potion** every 4 waves — refills all active members' energy to max (player-activated)
+10. **Disengaged members can't accept tasks** — card snaps back if dropped on them
+11. **Game over triggers instantly** when 3+ members are down (burnout + disengaged combined)
+12. Survive all 10 waves to win
 
 ## Features
 
 ### Chat System
 - Slack-style chat bubbles — team members react contextually
 - Reactions on task assignment (good match, bad match, overload)
-- Wave start, burnout, disengagement, 1-on-1 reactions
+- Wave start, burnout, disengagement reactions
 
 ### Boss Interrupts (BossEvent.ts)
 - ~50% chance mid-wave (at 12s remaining) — urgent task appears at top of list
@@ -48,8 +51,8 @@ A leadership training mini-game where you play as a newly promoted team lead. Ta
 - Events: "brought donuts", "had a conflict", "server went down", etc.
 
 ### Special Actions
-- **1-on-1 Meeting**: Click a member without a task selected — boosts morale +25 (once per wave)
 - **Delegate Up**: Once per game, remove lowest-priority unassigned task
+- **Power-up Potion**: Every 4 waves, player gets a potion to refill all members' energy to max
 
 ### Leadership Insights (InsightManager.ts)
 - One-time contextual tips triggered by events (first burnout, strength match, overload, etc.)
@@ -57,7 +60,9 @@ A leadership training mini-game where you play as a newly promoted team lead. Ta
 
 ### Leadership Report Card (ReportCard.ts)
 - Popup on game over / victory
-- Scores: Delegation (work balance), Empathy (people care), Prioritization (task management)
+- **Delegation score**: How evenly tasks were spread (equal = 100, all to one = 0)
+- **Empathy score**: % strength matches (up to 70) minus weakness mismatches and burnouts/disengagements
+- **Prioritization score**: % tasks completed out of total possible (10/wave × waves + boss tasks)
 - Leadership archetype: "The Strategist", "The Burnout Factory", "The Ghost Manager", etc.
 - Team feedback: each member gives a one-line review of your leadership
 
@@ -88,7 +93,8 @@ assets/
 │   ├── InsightManager.ts   — One-time leadership tips
 │   ├── BossEvent.ts        — Boss interrupts & random morale events
 │   ├── ReportCard.ts       — End-game popup with scores & feedback
-│   └── AudioManager.ts     — BGM & SFX (singleton)
+│   ├── AudioManager.ts     — BGM & SFX (singleton)
+│   └── StoryManager.ts     — Typewriter intro + Start button
 ```
 
 ## Conventions

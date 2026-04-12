@@ -23,6 +23,7 @@ const MORALE_DRAIN_RATE = 2;        // morale lost per second for idle eager mem
 const ENERGY_RECOVERY_RATE = 1.5;   // energy recovered per second when not working
 const UI_REFRESH_INTERVAL = 0.05;   // refresh member UI bars ~20fps for smooth drain
 
+
 @ccclass('GameManager')
 export class GameManager extends Component {
 
@@ -49,7 +50,6 @@ export class GameManager extends Component {
     private currentPhase: GamePhase = GamePhase.WaveStart;
     private selectedTask: TaskInfo | null = null;
     private delegateUpAvailable: boolean = true;
-    private oneOnOneUsedThisWave: boolean = false;
 
     // Timer
     private waveTimer: number = 0;
@@ -58,14 +58,24 @@ export class GameManager extends Component {
 
     // Got Powerup
     private powerUpCount: number = 0;
+    
+
+    private _started: boolean = false;
 
     start(): void {
         this.registerEvents();
+        gameEvents.on(GameEvent.GAME_START, this.onGameStart, this);
+    }
+
+    private onGameStart(): void {
+        if (this._started) return;
+        this._started = true;
         this.startWave();
     }
 
     onDestroy(): void {
         gameEvents.off(GameEvent.MEMBER_CLICKED, this.onMemberClicked, this);
+        gameEvents.off(GameEvent.GAME_START, this.onGameStart, this);
     }
 
     // ── Timer Loop ─────────────────────────────────────
@@ -115,6 +125,7 @@ export class GameManager extends Component {
                 gameEvents.emit(GameEvent.MEMBER_DISENGAGED, member);
                 gameEvents.emit(GameEvent.CHAT_MESSAGE,
                     `${member.displayName} feels ignored and has disengaged...`, 'System');
+                if (this.checkGameOver()) return;
             }
 
             // Slowly recover energy for all active members
@@ -137,7 +148,7 @@ export class GameManager extends Component {
             if (this.currentPhase !== GamePhase.Assignment) return;
             if (task.assignedTo) return;
             if (!member.canWork()) {
-                const reason = member.burnedOut ? 'burned out' : 'has no energy';
+                const reason = member.burnedOut ? 'burned out' : member.disengaged ? 'disengaged' : 'has no energy';
                 gameEvents.emit(GameEvent.CHAT_MESSAGE, `${member.displayName} is ${reason} and can't work.`, 'System');
                 return;
             }
@@ -153,7 +164,6 @@ export class GameManager extends Component {
     private startWave(): void {
         this.currentWave++;
         this.selectedTask = null;
-        this.oneOnOneUsedThisWave = false;
 
         // Reset per-wave task counts on members
         const members = this.teamSpawner.getMembers();
@@ -195,6 +205,7 @@ export class GameManager extends Component {
     }   
 
     private beginAssignmentPhase(): void {
+
         this.setPhase(GamePhase.Assignment);
         this.taskSpawner.spawnWaveTasks(TASKS_PER_WAVE);
         this.waveTimer = WAVE_DURATION;
@@ -205,9 +216,9 @@ export class GameManager extends Component {
         gameEvents.emit(GameEvent.WAVE_STARTED, this.currentWave);
         gameEvents.emit(GameEvent.CHAT_MESSAGE, `Wave ${this.currentWave}: ${TASKS_PER_WAVE} new tasks incoming!`, 'System');
 
-        if(this.currentWave % 2 == 0) {
+        if(this.currentWave % 4 === 0) { // every 4 rounds
             this.powerUpCount++;
-
+            gameEvents.emit(GameEvent.CHAT_MESSAGE, `Power-up available! Click the power-up button to restore team energy.`, 'System');
             this.powerUpLabel.string = this.powerUpCount.toString();
         }
     }
@@ -241,18 +252,7 @@ export class GameManager extends Component {
         // Refresh UI
         this.teamSpawner.refreshAll();
 
-        // Check game over
-        const burnedOutCount = members.filter(m => m.burnedOut).length;
-        const disengagedCount = members.filter(m => m.disengaged).length;
-
-        if (burnedOutCount >= 3) {
-            this.gameOver('Too many team members burned out.');
-            return;
-        }
-        if (disengagedCount >= 3) {
-            this.gameOver('Too many team members disengaged.');
-            return;
-        }
+        if (this.checkGameOver()) return;
 
         // Show report
         gameEvents.emit(GameEvent.SHOW_REPORT, reportMessages);
@@ -284,19 +284,13 @@ export class GameManager extends Component {
     private onMemberClicked(member: TeamMember): void {
         if (this.currentPhase !== GamePhase.Assignment) return;
 
-        // No task selected — try 1-on-1
         if (!this.selectedTask) {
-            if (!this.oneOnOneUsedThisWave) {
-                this.doOneOnOne(member);
-            } else {
-                gameEvents.emit(GameEvent.CHAT_MESSAGE, 'Select a task first, or you already used your 1-on-1 this wave.', 'System');
-            }
             return;
         }
 
         // Check if member can work
         if (!member.canWork()) {
-            const reason = member.burnedOut ? 'burned out' : 'has no energy';
+            const reason = member.burnedOut ? 'burned out' : member.disengaged ? 'disengaged' : 'has no energy';
             gameEvents.emit(GameEvent.CHAT_MESSAGE, `${member.displayName} is ${reason} and can't work.`, 'System');
             return;
         }
@@ -336,20 +330,16 @@ export class GameManager extends Component {
             gameEvents.emit(GameEvent.MEMBER_DISENGAGED, member);
         }
 
+        // Check game over after status change
+        if (member.burnedOut || member.disengaged) {
+            this.checkGameOver();
+        }
+
         // Clear selection
         this.selectedTask = null;
     }
 
     // ── Special Actions ─────────────────────────────────
-
-    private doOneOnOne(member: TeamMember): void {
-        this.oneOnOneUsedThisWave = true;
-        const msg = member.oneOnOne();
-        this.teamSpawner.refreshAll();
-
-        gameEvents.emit(GameEvent.ONE_ON_ONE, member);
-        gameEvents.emit(GameEvent.CHAT_MESSAGE, msg, member.displayName);
-    }
 
     public onDelegateUp(): void {
         if (!this.delegateUpAvailable) {
@@ -374,6 +364,16 @@ export class GameManager extends Component {
     }
 
     // ── Game Over ───────────────────────────────────────
+
+    private checkGameOver(): boolean {
+        const members = this.teamSpawner.getMembers();
+        const down = members.filter(m => m.burnedOut || m.disengaged).length;
+        if (down >= 3) {
+            this.gameOver('Too many team members are down.');
+            return true;
+        }
+        return false;
+    }
 
     private gameOver(reason: string): void {
         this.isTimerRunning = false;

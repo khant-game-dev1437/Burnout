@@ -4,34 +4,46 @@
 
 ## What Is This?
 
-You just got promoted to team lead at a tech company. Congratulations — now survive.
+You just got promoted to Department Head. Congratulations — now survive.
 
-Tasks flood your inbox every morning. You have 4 team members, each with unique strengths, weaknesses, and personalities. The catch: **you can't do any tasks yourself**. You can only delegate.
+Tasks flood in every 20 seconds. You have 4 team members, each with unique strengths and weaknesses. The catch: **you can't do any tasks yourself**. You can only delegate.
 
-Give someone too much work — they burn out. Ignore someone — they disengage. Mismatch tasks to skills — quality drops. There are always more tasks than your team can handle, so you must choose what to skip.
+Give someone too much work — they burn out. Ignore someone — they disengage. Mismatch tasks to skills — morale drops. There are always more tasks than your team can handle, so you must choose wisely.
 
-Survive 5 days. Keep your team alive. Learn what leadership actually means.
+Survive 10 waves. Keep your team alive. Learn what leadership actually means.
 
 ## Your Team
 
 | Name | Strength | Weakness | Personality |
 |------|----------|----------|-------------|
-| **Alex** | Technical | Communication | Introvert — burns out fast under social tasks |
-| **Sam** | Creative | Analytical | Enthusiastic — but needs variety or gets bored |
-| **Jordan** | Communication | Technical | People-person — hates being ignored |
-| **Riley** | Analytical | Creative | Reliable and steady — but crashes hard if overworked |
+| **Min Khant** | Technical | Communication | Introvert — burns out fast under social tasks |
+| **Leo** | Creative | Design | Enthusiastic — but needs variety |
+| **Timber Saw** | Communication | Creative | People-person — hates being ignored |
+| **Chris** | Design | Technical | Reliable and steady — slow to recover from overwork |
 
 ## How It Works
 
-Each day follows this loop:
+1. **Story Intro** — Typewriter-style intro explains the scenario
+2. **10 Waves** — Each wave lasts 20 seconds, spawning 10 new tasks
+3. **Drag & Drop** — Long-press (0.25s) a task card, drag it onto a team member
+4. **Survive** — Keep at least 2 members active. 3+ down = game over
+5. **Report Card** — End-game scoring with leadership archetype and team feedback
 
-1. **Morning** — New tasks arrive in your inbox. Check your team's status.
-2. **Assignment Phase** — Click a task, then click a team member to assign it. Match strengths for better results.
-3. **End Day** — See how assignments played out. Energy and morale update.
-4. **Evening Report** — What went well, what didn't, who's struggling.
-5. **Leadership Insight** — A contextual tip based on the decisions you made.
+### Real-Time Mechanics
+- **Morale drains continuously** (~2/sec) for all active members — the clock is always ticking
+- **Energy recovers slowly** (~1.5/sec) — members recharge when idle
+- **Unassigned tasks carry over** — pressure builds every wave
+- **Boss interrupts** — urgent tasks drop mid-wave, forcing reprioritization
+- **Random events** — "Leo brought donuts" or "the server went down"
 
-After 5 days, you receive a **Leadership Report Card** with scores and a leadership archetype.
+### Skill Matching
+Matching a task to a member's strength boosts morale. Mismatching drains it. The bonus scales with task difficulty:
+
+| Difficulty | Stars | Energy Cost | Morale Boost (strength match) |
+|-----------|-------|-------------|-------------------------------|
+| Easy | 1 | 25 | +20 |
+| Medium | 2 | 35 | +25 |
+| Hard | 3 | 45 | +30 |
 
 ## Leadership Skills Taught Through Mechanics
 
@@ -41,64 +53,105 @@ After 5 days, you receive a **Leadership Report Card** with scores and a leaders
 | More tasks than capacity | **Prioritization** — choosing what NOT to do |
 | Energy and morale tracking | **People awareness** — knowing your team's limits |
 | Skill matching gives bonuses | **Strengths-based leadership** — right person, right task |
-| Skipping low-priority tasks is valid | **Saying no** — protecting your team from overwork |
-| 1-on-1 meetings cost a task slot | **Making time for people** — relationships over output |
+| Morale drains in real-time | **Urgency** — delayed decisions have consequences |
 | Boss interrupts force reprioritization | **Adaptability** — handling pressure from above |
 
 ## Features
 
-- **Slack-style team chat** — Team members react to your decisions in real-time
-- **Boss interrupts** — Urgent tasks drop mid-day from upper management
-- **1-on-1 meetings** — Skip a task to have a conversation and boost morale
-- **Push back** — Once per game, reject a task from your boss
-- **Random events** — "Riley brought donuts" or "the coffee machine broke"
-- **Burnout cascade** — If someone burns out, their tasks spill onto others
-- **Leadership Report Card** — End-game scoring with archetype and team feedback
+- **Typewriter story intro** — Sets the scene before gameplay starts
+- **Wave-based timer system** — 10 rounds of increasing pressure
+- **Long-press drag & drop** — 0.25s hold to grab, allows scrolling without accidental drags
+- **Slack-style team chat** — Members react contextually to your decisions
+- **Boss interrupts** — Urgent tasks appear mid-wave at the top of the list
+- **Random morale events** — Positive and negative events keep you on your toes
+- **Power-up potion** — Every 4 waves, restore all members' energy to max
+- **Delegate Up** — Once per game, push back on a task
+- **Leadership insights** — One-time contextual tips that connect mechanics to real leadership
+- **Leadership Report Card** — End-game popup with scores, archetype, and team feedback
+- **Play Again** — Restart from the report card screen
 
 ## Leadership Archetypes
 
 Your play style determines your result:
 
-- **The Strategist** — Balanced, thoughtful, effective
-- **The Empath** — Team loves you, but not enough gets done
-- **The Taskmaster** — Everything done, but at what cost?
-- **The Micromanager** — Overloaded some, ignored others
-- **The Burnout Factory** — Multiple people crashed under your leadership
-- **The Rookie** — Still learning, and that's okay
+- **The Strategist** — Right person, right task. Every time.
+- **The Empath** — You cared about your people. It showed.
+- **The Survivor** — You made it through. Barely.
+- **The Micromanager** — You dumped everything on one person.
+- **The Ghost Manager** — Your team barely knew you were there.
+- **The Burnout Factory** — You pushed your team to the breaking point.
+- **The Overwhelmed Rookie** — Every leader starts somewhere.
+
+## Technical Architecture
+
+### Why Event-Driven?
+
+The game uses a **global event bus** (`GameEvents.ts`) instead of direct references between systems. This means:
+
+- **ChatSystem** doesn't know about **GameManager** — it just listens for `TASK_ASSIGNED` and reacts
+- **ReportCard** tracks stats by listening to events, without touching any game logic
+- **InsightManager** can be removed entirely without breaking anything
+- Adding a new feature (like BossEvent) only requires subscribing to existing events — zero changes to other files
+
+This keeps systems **decoupled** and makes the codebase easy to extend.
+
+### Why Singleton for AudioManager?
+
+Audio needs to be accessible from anywhere (TaskCard plays click sounds, GameManager could play victory sounds). Instead of passing references through every component, `AudioManager.instance` provides global access with a single audio source.
+
+### Key Design Decisions
+
+- **Long-press to drag (0.25s)** — Without this, scrolling the task list would accidentally start dragging cards. The hold threshold lets touch events pass through to ScrollView for scrolling.
+- **Real-time morale drain** — Instead of end-of-day calculations, morale drains every frame. This creates visible urgency — you can watch the bars drop. The `update(dt)` loop handles drain, energy recovery, and UI refresh at ~20fps for smooth bar animations.
+- **Task cards destroyed on assign** — Cards are removed from the list immediately to keep it clean. No dimming, no scrolling past completed tasks.
+- **Game over checked on state change, not per-frame** — `checkGameOver()` only runs when a member actually burns out or disengages, not every frame. Efficient and responsive.
+- **Shared constants** (`GameConstants.ts`) — Skill names, colors, and member data defined once. No duplicate magic values across files.
+- **All listeners cleaned up in `onDestroy()`** — Every component that subscribes to the event bus unsubscribes when destroyed. No memory leaks.
+- **Tuning constants at file top** — Gameplay values (drain rate, energy cost, morale boost) are named constants, easy to find and adjust without touching logic.
+
+### Project Structure
+
+```
+assets/
+├── prefabs/
+│   ├── chatItem.prefab     — Chat bubble prefab
+│   ├── member.prefab       — Team member UI card
+│   └── taskItem.prefab     — Draggable task card
+├── scripts/
+│   ├── GameManager.ts      — Wave timer, assignment logic, game flow
+│   ├── GameEvents.ts       — Global event bus
+│   ├── GameConstants.ts    — Shared constants (colors, names)
+│   ├── GameAnimations.ts   — Tween helpers (bounce, shake)
+│   ├── TeamMember.ts       — Member stats, skill matching, dialogs
+│   ├── TeamSpawner.ts      — Spawns members, updates UI bars
+│   ├── TaskData.ts         — Task pool and generation
+│   ├── TaskCard.ts         — Long-press drag-and-drop component
+│   ├── TaskSpawner.ts      — Spawns/manages task cards
+│   ├── ChatSystem.ts       — Slack-style chat reactions
+│   ├── ChatBubble.ts       — Individual chat bubble
+│   ├── InsightManager.ts   — One-time leadership tips
+│   ├── BossEvent.ts        — Boss interrupts & random events
+│   ├── ReportCard.ts       — End-game scoring & feedback
+│   ├── AudioManager.ts     — BGM & SFX (singleton)
+│   └── StoryManager.ts     — Typewriter intro scene
+```
 
 ## Tech Stack
 
 - **Engine:** Cocos Creator 3.8.2 (2D)
 - **Language:** TypeScript
-- **UI:** Fully programmatic — no external art assets required
+- **Architecture:** Event-driven, component-based
 - **Platform:** Web (HTML5)
 
-## AI Tools Note
+## AI Tools
 
-This project was developed with assistance from Claude (Anthropic) for code generation, game design iteration, and architecture planning. AI was used as a collaborative tool — all design decisions, creative direction, and implementation review were done by the developer.
+This project was developed with assistance from Claude (Anthropic) for code generation, architecture planning, and game design iteration. AI was used as a collaborative tool — all design decisions, creative direction, and implementation review were done by the developer.
 
 ## How to Run
 
 1. Open the project in Cocos Creator 3.8.2
 2. Open the main scene
-3. Attach `GameManager` component to the root Canvas node
-4. Press Play
-
-## Project Structure
-
-```
-assets/
-└── scripts/
-    ├── GameManager.ts      — Main game controller & state machine
-    ├── TeamMember.ts       — Team member data & component
-    ├── TaskData.ts         — Task types & generation
-    ├── UIManager.ts        — Programmatic UI layout & updates
-    ├── TaskCard.ts         — Individual task card component
-    ├── ChatSystem.ts       — Slack-style team reactions
-    ├── BossEvent.ts        — Boss interrupts & random events
-    ├── InsightManager.ts   — Contextual leadership tips
-    └── ReportCard.ts       — End-game leadership report card
-```
+3. Press Play
 
 ## Submission
 

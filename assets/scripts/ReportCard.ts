@@ -298,32 +298,59 @@ export class ReportCard extends Component {
 
     // ── Scoring ────────────────────────────────────
 
+    private getTotalPossibleTasks(): number {
+        // 10 tasks per wave + boss interrupts
+        return 10 * this.stats.wavesCompleted + this.stats.bossInterrupts;
+    }
+
     private getDelegationScore(): number {
-        const counts = [...this.stats.memberStats.values()].map(m => m.tasksAssigned);
-        if (counts.length === 0 || this.stats.totalTasksAssigned === 0) return 0;
-        const avg = counts.reduce((a, b) => a + b, 0) / counts.length;
-        const variance = counts.reduce((sum, c) => sum + Math.pow(c - avg, 2), 0) / counts.length;
-        return Math.max(0, Math.min(100, Math.round(100 - Math.sqrt(variance) * 15)));
+        if (this.stats.totalTasksAssigned === 0) return 0;
+
+        const TOTAL_MEMBERS = 4;
+        const counts: number[] = [];
+        for (const [, ms] of this.stats.memberStats) {
+            counts.push(ms.tasksAssigned);
+        }
+        while (counts.length < TOTAL_MEMBERS) {
+            counts.push(0);
+        }
+
+        // Score based on: how many members got work (up to 50) + how even the spread is (up to 50)
+        const membersUsed = counts.filter(c => c > 0).length;
+        const usageScore = (membersUsed / TOTAL_MEMBERS) * 50;
+
+        const avg = this.stats.totalTasksAssigned / TOTAL_MEMBERS;
+        const maxDiff = avg * TOTAL_MEMBERS; // worst case total diff
+        const totalDiff = counts.reduce((sum, c) => sum + Math.abs(c - avg), 0);
+        const balanceScore = maxDiff > 0 ? (1 - totalDiff / (maxDiff * 2)) * 50 : 0;
+
+        return Math.max(0, Math.min(100, Math.round(usageScore + balanceScore)));
     }
 
     private getEmpathyScore(): number {
+        // What % of assigned tasks were strength matches vs weakness matches
         if (this.stats.totalTasksAssigned === 0) return 0;
-        let score = 0;
-        score += this.stats.oneOnOnes * 20;
-        score += this.stats.strengthMatches * 5;
-        score -= this.stats.burnouts * 25;
-        score -= this.stats.disengagements * 20;
-        score -= this.stats.weaknessMatches * 5;
+
+        const matchRate = this.stats.strengthMatches / this.stats.totalTasksAssigned;
+        const mismatchRate = this.stats.weaknessMatches / this.stats.totalTasksAssigned;
+
+        let score = Math.round(matchRate * 70);       // up to 70 from good matches
+        score -= Math.round(mismatchRate * 30);        // lose up to 30 from bad matches
+        score -= this.stats.burnouts * 10;             // -10 per burnout
+        score -= this.stats.disengagements * 10;       // -10 per disengagement
+
         return Math.max(0, Math.min(100, score));
     }
 
     private getPrioritizationScore(): number {
-        if (this.stats.totalTasksAssigned === 0) return 0;
-        let score = 0;
-        score += this.stats.delegateUps * 15;
-        const total = this.stats.totalTasksAssigned + this.stats.totalTasksSkipped;
-        if (total > 0) score += Math.round((this.stats.totalTasksAssigned / total) * 50);
-        score += this.stats.wavesCompleted * 5;
+        // What % of total possible tasks did you actually assign
+        const totalPossible = this.getTotalPossibleTasks();
+        if (totalPossible === 0) return 0;
+
+        const completionRate = this.stats.totalTasksAssigned / totalPossible;
+        let score = Math.round(completionRate * 80);   // up to 80 from completion rate
+        score += this.stats.wavesCompleted * 2;        // +2 per wave survived
+
         return Math.max(0, Math.min(100, score));
     }
 

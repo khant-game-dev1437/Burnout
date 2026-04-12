@@ -31,6 +31,7 @@ export const GameEvent = {
     BOSS_INTERRUPT: 'boss-interrupt',     // (task: TaskInfo)
 
     // Game state
+    GAME_START: 'game-start',             // () — story finished, start first wave
     GAME_OVER: 'game-over',               // (reason: string)
     GAME_WON: 'game-won',                 // ()
     NEW_GAME: 'new-game',                 // ()

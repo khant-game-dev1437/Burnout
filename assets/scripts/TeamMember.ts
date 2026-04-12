@@ -185,7 +185,7 @@ export class TeamMember extends Component {
     }
 
     public canWork(): boolean {
-        return !this.burnedOut && this.energy > 0;
+        return !this.burnedOut && !this.disengaged && this.energy > 0;
     }
 
     /** Update mood based on current morale */

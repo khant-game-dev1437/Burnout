@@ -67,7 +67,7 @@ export function generateDailyTasks(count: number = 10): TaskInfo[] {
             title: t.title,
             skill: t.skill,
             priority,
-            difficulty: priority === TaskPriority.High ? 2 : 1,
+            difficulty: priority === TaskPriority.High ? 3 : priority === TaskPriority.Medium ? 2 : 1,
             isBossTask: false,
             assignedTo: null,
         });

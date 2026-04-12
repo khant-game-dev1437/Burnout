@@ -184,7 +184,8 @@ export class TaskSpawner extends Component {
                 const member = members[i];
                 if (member && this.onTaskDroppedOnMember) {
                     this.onTaskDroppedOnMember(task, member);
-                    return true;
+                    // Only return true if task was actually assigned
+                    return task.assignedTo !== null;
                 }
             }
         }
