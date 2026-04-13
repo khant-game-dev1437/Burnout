@@ -204,7 +204,7 @@ export class TeamMember extends Component {
     public assignTask(taskSkill: SkillType, taskDifficulty: number): { quality: number; message: string } {
         this.assignedTaskCount++;
 
-        let energyCost = 15 + taskDifficulty * 10;   // diff1=25, diff2=35, diff3=45
+        let energyCost = 10 + taskDifficulty * 10;   // diff1=20, diff2=30, diff3=40
         let moraleCost = BASE_MORALE_COST;
         let quality = BASE_QUALITY;
         let message = '';
