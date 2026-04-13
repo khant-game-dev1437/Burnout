@@ -32,7 +32,7 @@ A leadership training mini-game where you play as a newly promoted team lead. Ta
 5. **All active members' morale drains in real-time** (~2/sec) — assigning strength-matched tasks is the only way to fight it
 6. **Energy recovers slowly** in real-time (~1.5/sec) for active members
 7. **Morale boost scales with difficulty**: diff1=+20, diff2=+25, diff3=+30
-8. **Energy cost scales with difficulty**: diff1=25, diff2=35, diff3=45 (stars match difficulty)
+8. **Energy cost scales with difficulty**: diff1=20, diff2=30, diff3=40 (stars match difficulty)
 9. **Power-up potion** every 4 waves — refills all active members' energy to max (player-activated)
 10. **Disengaged members can't accept tasks** — card snaps back if dropped on them
 11. **Game over triggers instantly** when 3+ members are down (burnout + disengaged combined)

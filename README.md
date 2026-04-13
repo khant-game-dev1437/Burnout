@@ -32,6 +32,7 @@ Survive 10 waves. Keep your team alive. Learn what leadership actually means.
 ### Real-Time Mechanics
 - **Morale drains continuously** (~2/sec) for all active members — the clock is always ticking
 - **Energy recovers slowly** (~1.5/sec) — members recharge when idle
+- **Strategic rest** — if a member's energy is low, hold off on assigning tasks and let them recover before their morale runs out
 - **Unassigned tasks carry over** — pressure builds every wave
 - **Boss interrupts** — urgent tasks drop mid-wave, forcing reprioritization
 - **Random events** — "Leo brought donuts" or "the server went down"
@@ -41,9 +42,9 @@ Matching a task to a member's strength boosts morale. Mismatching drains it. The
 
 | Difficulty | Stars | Energy Cost | Morale Boost (strength match) |
 |-----------|-------|-------------|-------------------------------|
-| Easy | 1 | 25 | +20 |
-| Medium | 2 | 35 | +25 |
-| Hard | 3 | 45 | +30 |
+| Easy | 1 | 20 | +20 |
+| Medium | 2 | 30 | +25 |
+| Hard | 3 | 40 | +30 |
 
 ## Leadership Skills Taught Through Mechanics
 
